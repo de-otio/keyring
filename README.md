@@ -4,6 +4,22 @@
 
 Key-lifecycle layer on top of [`@de-otio/crypto-envelope`](https://github.com/de-otio/crypto-envelope). Provides the tier model (SSH-wrap / Argon2id-passphrase), storage backends (OS keychain, WebExtension MV3, IndexedDB, filesystem), SSH interop, TOFU pinning, project-key wrapping, ECDH invite flow, and resumable rotation orchestration.
 
+## What it does, at a glance
+
+```mermaid
+flowchart LR
+    Secret["passphrase<br/>or SSH key"]
+    Tier["Tier<br/>(derive / unwrap)"]
+    Master["MasterKey<br/>in SecureBuffer"]
+    Storage[("Storage<br/>OS keychain · IDB · FS")]
+    App["your app<br/>(via crypto-envelope)"]
+
+    Secret --> Tier --> Master --> App
+    Master <--> Storage
+```
+
+Unlock with a secret → keyring hands your app a short-lived master key → wrapped state is persisted by a pluggable storage backend. Rotation swaps the master and rewraps everything, resumably.
+
 ## Scope boundary
 
 | Package | Owns |
