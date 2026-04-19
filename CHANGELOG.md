@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Phase F (Project keys + age-invite flow with S1 + B4 security fixes)
+
+- **`createProjectKey(master, projectName)` / `unwrapProjectKey(master, wrapped)`** in `src/project-keys.ts` — wrap/unwrap per-project 32-byte symmetric keys under the personal master. Uses `EnvelopeClient` so the wrapped form is a self-authenticating v1 envelope with RFC 8785 canonical-JSON AAD.
+- **`invite(projectKey, inviteePubKey)` / `acceptInvite(wrapped, myIdentity)`** in `src/invite.ts` — age-encryption-backed wrap/unwrap for sharing a project key with a recipient. New **peer dependency** `age-encryption@^0.3.0`. Re-exports `generateIdentity`, `generateX25519Identity`, `identityToRecipient` for callers that need to mint keys without a separate `age-encryption` import.
+- `RESERVED_PROJECT_NAMES` (contains `'__personal'`) — `createProjectKey` and `unwrapProjectKey` both refuse reserved names so call sites that switch on project name to pick a key can't accidentally shadow the personal-master path.
+
+### Security fixes shipped in Phase F
+
+- **S1 (Medium) — static HKDF info in project-key wrap.** The chaoskb predecessor used a hard-coded `"chaoskb-project-wrap"` as the HKDF info, so two project keys under the same personal master shared the same wrapping key — an attacker who could swap wrapped blobs between projects got away undetected. `createProjectKey` now binds the project name into the envelope's `kid` (`canonicalJson({ctx: "keyring/v1/project-wrap", name})`), which goes into the per-envelope canonical-JSON AAD. On unwrap, the stored envelope's baked-in kid is compared against the expected kid for the caller-supplied project name **before** AEAD is attempted; a mismatch produces a prompt `UnlockFailed`. AEAD enforces the binding cryptographically after that.
+- **B4 (Medium) — no X25519 small-order point rejection in invite.** The chaoskb custom invite code called `sodium.crypto_scalarmult` with attacker-supplied peer input, which doesn't reject low-order points — an attacker could force the shared secret to a known fixed value. Delegating to `age-encryption` eliminates this entirely: `@noble/curves` (age's X25519 backend) rejects low-order peer inputs at the scalar-mult layer, so B4 is handled at the library boundary rather than at the call site.
+- **Previously-unflagged empty-AAD in invite.** The chaoskb invite AEAD tag used `new Uint8Array(0)` as AAD, allowing cross-invite stanza-substitution attacks. age's header MAC binds every recipient stanza into the file-key derivation (RFC 9580-style AEAD header), so swapping stanzas across invites fails header MAC verification; swapping payload bodies fails the per-chunk ChaCha20-Poly1305 tag.
+
+### Tests — Phase F
+
+- 22 unit tests: 13 for `project-keys` (round-trip, fresh random per call, reserved name rejection at both wrap and unwrap, invalid-name rejection for path traversal / special chars / over-length, **S1 mismatched-project-name rejection**, different-master rejection, tampered-envelope rejection, cross-master-same-name swap defence), 9 for `invite` (round-trip, fresh ciphertext per call, wrong-identity rejection, sender-cannot-self-decrypt, tampered-ciphertext rejection, random-junk rejection, identity + recipient generation shape, deterministic `identityToRecipient`, full-32-byte payload integrity).
+- **Real-world invite flows are not wired at the `KeyRing` class level in this phase.** F3 landed the primitives as free functions; the `KeyRing.createProjectKey`/`inviteTo`/`acceptInvite` sugar methods remain a follow-up. Chaoskb migration exercises the primitives end-to-end.
+
 ### Added — Phase E (Browser storage: WebExtensionStorage + IndexedDbStorage)
 
 - **`WebExtensionStorage`** in `src/storage/webextension.ts` — persists `WrappedKey`s in `chrome.storage.local` (default) or `chrome.storage.session` for MV3 extensions. Capability-typed `KeyStorage<'standard'>`: the TypeScript compiler refuses a `MaximumTier` + `WebExtensionStorage` pairing (passphrase-derived masters must not live in browser storage — browsers lack the memory-hygiene primitives Node gets via `sodium-native`). `TierStorageMismatch` at the `KeyRing` constructor is the runtime belt-and-braces.
