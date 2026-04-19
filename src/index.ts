@@ -1,11 +1,10 @@
 /**
  * `@de-otio/keyring` — key-lifecycle layer on top of `@de-otio/crypto-envelope`.
  *
- * Pre-alpha. Public API under construction. Phase B scope shipped:
- * `MaximumTier`, `InMemoryStorage`, `FileSystemStorage`, minimal
- * `KeyRing`. Phase C adds `StandardTier` (SSH wrap); Phase D adds
- * `OsKeychainStorage`; Phase E adds browser storage; Phase F adds
- * project keys + invite.
+ * Pre-alpha. Phase B: MaximumTier + fs/in-memory storage + minimal
+ * KeyRing. Phase C: StandardTier + SSH + TOFU. Phase D:
+ * OsKeychainStorage. Phase E: browser storage. Phase F: project keys
+ * + invite.
  */
 
 // Public types — stable surface (Phase A)
@@ -56,12 +55,12 @@ export { FileSystemStorage } from './storage/file-system.js';
 // Phase C runtime
 export { StandardTier } from './tiers/standard.js';
 export {
-  parseSshPublicKey,
-  sshFingerprint,
   ed25519ToX25519PublicKey,
   ed25519ToX25519SecretKey,
-  type SshPublicKey,
+  parseSshPublicKey,
+  sshFingerprint,
   type SshKeyType,
+  type SshPublicKey,
 } from './ssh/keys.js';
 export {
   KnownKeys,
@@ -70,6 +69,9 @@ export {
   type KnownKeysOptions,
   type PinnedKey,
 } from './known-keys.js';
+
+// Phase D runtime
+export { OsKeychainStorage } from './storage/os-keychain.js';
 
 // Runtime classes not yet implemented — stubs until their phase lands.
 // Each throws at construction so accidental early use fails loudly.
@@ -81,14 +83,7 @@ class NotImplementedError extends Error {
   }
 }
 
-// Phase D stub
-export class OsKeychainStorage {
-  constructor(_options?: unknown) {
-    throw new NotImplementedError('OsKeychainStorage', 'D');
-  }
-}
-
-// Phase G stub (was listed as G in the plan after scope cut)
+// Phase G stub (deferred to keyring 0.2).
 export function rotateMaster(
   _oldMaster: unknown,
   _newMaster: unknown,

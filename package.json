@@ -86,7 +86,7 @@
     "sshpk": "^1.18.0"
   },
   "optionalDependencies": {
-    "@napi-rs/keyring": "^1.1.9"
+    "@napi-rs/keyring": "^1.2.0"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
