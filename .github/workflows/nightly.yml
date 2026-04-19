@@ -1,0 +1,78 @@
+name: Nightly Integration
+
+# Integration tests that are too expensive or non-deterministic for PR CI.
+# Real OS keychain round-trips and real MV3 extension smoke tests run here.
+
+on:
+  schedule:
+    # 03:17 UTC daily — off-peak.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  os-keychain-integration:
+    # Real OS keychain via @napi-rs/keyring. Each platform has its own
+    # backend (macOS Keychain, Windows Credential Manager, Linux libsecret).
+    # Linux requires `libsecret-tools` + headless dbus; see setup step.
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install libsecret + dbus (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsecret-1-0 libsecret-1-dev gnome-keyring dbus-x11
+      - run: npm ci
+      - run: npm run build
+      - name: Run keychain integration (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          dbus-run-session -- bash -c "echo 'test-pw' | gnome-keyring-daemon --unlock && npm run test:integration:keychain"
+      - name: Run keychain integration (macOS / Windows)
+        if: matrix.os != 'ubuntu-latest'
+        run: npm run test:integration:keychain
+
+  mv3-extension-smoke:
+    # Load an unpacked MV3 extension via Playwright; round-trip chrome.storage.
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - run: npm run test:integration:mv3
+
+  ssh-agent-integration:
+    # Spawn a real ssh-agent, import a test key, exercise socket IPC.
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:integration:ssh-agent

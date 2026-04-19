@@ -1,0 +1,35 @@
+# doc-search index
+.doc-search-index
+
+# Node
+node_modules/
+*.log
+
+# Build output
+dist/
+coverage/
+*.tsbuildinfo
+
+# Spike artifacts (kept out of main build)
+spike/node_modules/
+spike/dist/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.swp
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+
+# Test artifacts
+.vitest-cache/
+playwright-report/
+test-results/
+
+# Review artifacts (kept local by default; remove this line to commit)
+tmp/

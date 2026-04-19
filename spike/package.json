@@ -1,0 +1,26 @@
+{
+  "name": "keyring-age-spike",
+  "version": "0.0.0-spike",
+  "description": "Throwaway spike: prototype keyring tiers/invite via age. See plans/03-age-spike-report.md.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "node --import tsx --test ./test/*.ts",
+    "loc": "node ./tools/loc.mjs",
+    "measure": "node ./tools/measure.mjs",
+    "bundle:ssh": "esbuild age-ssh-tier.ts --bundle --format=esm --platform=browser --minify --metafile=meta-ssh.json --outfile=/dev/null",
+    "bundle:passphrase": "esbuild age-passphrase-tier.ts --bundle --format=esm --platform=browser --minify --metafile=meta-passphrase.json --outfile=/dev/null",
+    "bundle:invite": "esbuild age-invite.ts --bundle --format=esm --platform=browser --minify --metafile=meta-invite.json --outfile=/dev/null",
+    "bundle:all": "esbuild age-all.ts --bundle --format=esm --platform=browser --minify --metafile=meta-all.json --outfile=bundle-all.min.js"
+  },
+  "dependencies": {
+    "age-encryption": "0.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.27.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.9.0"
+  }
+}

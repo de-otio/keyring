@@ -1,0 +1,38 @@
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: '08:00'
+      timezone: Europe/Amsterdam
+    open-pull-requests-limit: 5
+    groups:
+      de-otio:
+        # Group @de-otio/* updates into a single PR so co-promotion with
+        # crypto-envelope doesn't flap CI during the joint-alpha window.
+        patterns:
+          - '@de-otio/*'
+      noble:
+        patterns:
+          - '@noble/*'
+      dev-tooling:
+        patterns:
+          - '@biomejs/*'
+          - '@vitest/*'
+          - 'vitest'
+          - 'pkgroll'
+          - 'typescript'
+          - '@arethetypeswrong/*'
+    ignore:
+      # Ignore pre-release bumps during joint-alpha; keyring tracks
+      # crypto-envelope's alpha lockstep via manual bumps per release plan §14.
+      - dependency-name: '@de-otio/crypto-envelope'
+        update-types: ['version-update:semver-prerelease']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

@@ -1,0 +1,102 @@
+{
+  "name": "@de-otio/keyring",
+  "version": "0.1.0-alpha.0",
+  "description": "Key-lifecycle layer on top of @de-otio/crypto-envelope: tier model (SSH-wrap / passphrase), storage backends (OS keychain, WebExtension, IndexedDB, filesystem), SSH interop, TOFU pinning, project keys, ECDH invite, resumable rotation.",
+  "license": "MIT",
+  "author": {
+    "name": "De Otio",
+    "email": "security@de-otio.org",
+    "url": "https://github.com/de-otio"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/de-otio/keyring.git"
+  },
+  "homepage": "https://github.com/de-otio/keyring#readme",
+  "bugs": {
+    "url": "https://github.com/de-otio/keyring/issues"
+  },
+  "keywords": [
+    "keyring",
+    "key-management",
+    "ssh",
+    "ssh-agent",
+    "argon2id",
+    "tofu",
+    "rotation",
+    "crypto-shredding",
+    "zero-knowledge",
+    "end-to-end-encryption",
+    "typescript"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "node": "./dist/index.js",
+      "browser": {
+        "types": "./dist/browser/index.d.ts",
+        "default": "./dist/browser/index.js"
+      },
+      "default": "./dist/index.js"
+    },
+    "./browser": {
+      "types": "./dist/browser/index.d.ts",
+      "default": "./dist/browser/index.js"
+    },
+    "./errors": {
+      "types": "./dist/errors.d.ts",
+      "default": "./dist/errors.js"
+    }
+  },
+  "files": ["dist/", "LICENSE", "README.md", "SECURITY.md", "CHANGELOG.md"],
+  "scripts": {
+    "build": "pkgroll --clean-dist",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check . && npm run typecheck",
+    "lint:fix": "biome check --write .",
+    "attw": "attw --pack . --profile esm-only",
+    "prepublishOnly": "npm run build && npm run lint && npm run test:coverage && npm run attw"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "peerDependencies": {
+    "@de-otio/crypto-envelope": ">=0.2.0-alpha.1 <0.3.0",
+    "age-encryption": "^0.3.0"
+  },
+  "peerDependenciesMeta": {
+    "age-encryption": {
+      "optional": false
+    }
+  },
+  "dependencies": {
+    "idb": "^8.0.0",
+    "sshpk": "^1.18.0"
+  },
+  "optionalDependencies": {
+    "@napi-rs/keyring": "^1.1.9"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.2",
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^25.6.0",
+    "@types/sshpk": "^1.17.4",
+    "@vitest/browser": "^4.1.4",
+    "@vitest/coverage-v8": "^4.1.4",
+    "pkgroll": "^2.20.0",
+    "playwright": "^1.55.0",
+    "typescript": "~5.9.0",
+    "vitest": "^4.1.4"
+  }
+}

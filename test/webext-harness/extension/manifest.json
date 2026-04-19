@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "@de-otio/keyring MV3 test harness",
+  "version": "0.0.1",
+  "description": "Minimal MV3 extension loaded by Playwright to exercise chrome.storage round-trips. Not published.",
+  "permissions": ["storage"],
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  }
+}
