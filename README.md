@@ -12,6 +12,14 @@ Key-lifecycle layer on top of [`@de-otio/crypto-envelope`](https://github.com/de
 | `@de-otio/keyring` | Tier model, storage backends, SSH interop, TOFU, project keys, invite flow, rotation orchestration, optional audit-event sink |
 | Consumer (chaoskb / trellis) | App storage, product flows (device linking, sync, voting, ActivityPub), UI |
 
+```mermaid
+flowchart TD
+    Consumer["Consumer app (chaoskb / trellis)<br/>UI · product flows"]
+    Keyring["@de-otio/keyring<br/>tiers · storage · SSH · TOFU · rotation"]
+    Envelope["@de-otio/crypto-envelope<br/>AEAD · HKDF · Argon2id · envelope"]
+    Consumer --> Keyring --> Envelope
+```
+
 ## Install
 
 ```sh
