@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Phase E (Browser storage: WebExtensionStorage + IndexedDbStorage)
+
+- **`WebExtensionStorage`** in `src/storage/webextension.ts` — persists `WrappedKey`s in `chrome.storage.local` (default) or `chrome.storage.session` for MV3 extensions. Capability-typed `KeyStorage<'standard'>`: the TypeScript compiler refuses a `MaximumTier` + `WebExtensionStorage` pairing (passphrase-derived masters must not live in browser storage — browsers lack the memory-hygiene primitives Node gets via `sodium-native`). `TierStorageMismatch` at the `KeyRing` constructor is the runtime belt-and-braces.
+- **`IndexedDbStorage`** in `src/storage/indexeddb.ts` — IndexedDB-backed storage via the lazy-loaded `idb` package (~1.5KB gzipped). Same `KeyStorage<'standard'>` capability restriction. Uses structured-clone for native `Uint8Array` round-trip — no base64 overhead. Configurable `dbName`, `storeName`, `version` so multiple consumers can share a database without stepping on each other.
+- Storage area detection for `WebExtensionStorage`: falls back from `globalThis.chrome.storage` to `globalThis.browser.storage` (older Firefox pre-polyfill). Tests inject `storageArea` directly to cover both detection paths and the Node path where neither global exists.
+- `prefix` option on `WebExtensionStorage` (default `'keyring:'`) namespaces slots so a single `chrome.storage.local` can be shared with unrelated extension data. `list()` enumerates only prefix-matched keys, never the full storage area.
+- `@de-otio/keyring/browser` entry point now re-exports the real `WebExtensionStorage` and `IndexedDbStorage` — previous stubs that threw at construction are removed. `StandardTier` and `KeyRing` remain Node-only (require `node:crypto` + `sodium-native`); a browser `KeyRing` using Web Crypto is deferred.
+
+### Tests — Phase E
+
+- 30 unit tests across `webextension-storage` and `indexeddb-storage`, with both storage backends mocked (a fake `chrome.storage` area for WebExtension; a fake `idb` module for IndexedDB) so they run on headless Node CI without browser infrastructure. Coverage across: round-trip, missing slot, overwrite semantics, idempotent delete, per-storage isolation, kdfParams round-trip (argon2id + pbkdf2-sha256), unsupported wire version / tier kind / KDF algorithm rejection, slot-name path-traversal rejection, prefix isolation and normalisation, storage-area detection via `chrome.storage` / `browser.storage`, module-load failure for `idb`, and legacy ArrayBuffer → Uint8Array coercion.
+- **Real-browser integration tests are not wired in this phase.** They'd need a Playwright MV3 harness and a headless Chromium with IndexedDB enabled — deferred to a follow-up (E3 in the plan). Chaoskb/Trellis migrations validate the real-browser round-trip end-to-end.
+
 ### Added — Phase D (OsKeychainStorage via @napi-rs/keyring)
 
 - **`OsKeychainStorage<K>`** in `src/storage/os-keychain.ts` — persists `WrappedKey`s in the OS keychain (macOS Keychain Services, Windows Credential Manager, Linux libsecret) via `@napi-rs/keyring`. Constructor takes a required `service: string` naming the caller's keychain namespace (`'chaoskb'`, `'trellis'`, etc.).

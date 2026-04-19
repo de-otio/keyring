@@ -73,6 +73,17 @@ export {
 // Phase D runtime
 export { OsKeychainStorage } from './storage/os-keychain.js';
 
+// Phase E runtime — browser storage backends. Safe to import in Node;
+// constructors that need browser globals (`chrome.storage`, `indexedDB`)
+// throw at construction time there. Exporting here lets consumers
+// bundling their own browser code reach them via the single
+// `@de-otio/keyring` entry.
+export {
+  WebExtensionStorage,
+  type WebExtensionStorageArea,
+} from './storage/webextension.js';
+export { IndexedDbStorage } from './storage/indexeddb.js';
+
 // Runtime classes not yet implemented — stubs until their phase lands.
 // Each throws at construction so accidental early use fails loudly.
 
