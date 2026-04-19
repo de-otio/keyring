@@ -84,6 +84,21 @@ export {
 } from './storage/webextension.js';
 export { IndexedDbStorage } from './storage/indexeddb.js';
 
+// Phase F runtime — project keys + age-invite flow.
+export {
+  RESERVED_PROJECT_NAMES,
+  createProjectKey,
+  unwrapProjectKey,
+  type WrappedProjectKey,
+} from './project-keys.js';
+export {
+  acceptInvite,
+  generateIdentity,
+  generateX25519Identity,
+  identityToRecipient,
+  invite,
+} from './invite.js';
+
 // Runtime classes not yet implemented — stubs until their phase lands.
 // Each throws at construction so accidental early use fails loudly.
 
