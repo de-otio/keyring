@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  KeyRing,
   KeyRingError,
   NotUnlocked,
   ProjectKeyNotFound,
@@ -9,15 +8,10 @@ import {
   WrongPassphrase,
 } from '../src/index.js';
 
-// Phase A smoke test. Verifies the public surface compiles and the stub
-// runtime throws clearly for early callers. Replaced by real tests in
-// Phase B onwards.
+// Phase A scaffolding smoke test. Phase B onwards has dedicated test
+// files for each runtime class.
 
-describe('Phase A scaffold', () => {
-  it('exports runtime stubs that throw with implementation phase', () => {
-    expect(() => new KeyRing({})).toThrow(/Phase G/);
-  });
-
+describe('public surface smoke', () => {
   it('exposes the error hierarchy with stable codes', () => {
     const err = new WrongPassphrase('test');
     expect(err).toBeInstanceOf(KeyRingError);
