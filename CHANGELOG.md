@@ -7,6 +7,40 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — Phase C (StandardTier + SSH key handling + TOFU with security fixes)
+
+- **`StandardTier.fromSshKey(publicKeyString)`** — SSH-key-wrapped master via one of two paths:
+  - Ed25519: `crypto_box_seal` to the X25519 recipient derived from the SSH Ed25519 public key.
+  - RSA: hybrid KEM+DEM. RSA-OAEP-SHA256 wraps a fresh KEK; `EnvelopeClient` encrypts the master under the KEK.
+- `parseSshPublicKey(line)` — OpenSSH `authorized_keys` format parser. `ssh-ed25519` + `ssh-rsa` only; ECDSA throws `UnsupportedSshKeyType` (v0.2 scope).
+- `sshFingerprint(blob)` — `SHA256:<base64-no-pad>` format matching OpenSSH `ssh-keygen -lf -E sha256`.
+- `ed25519ToX25519PublicKey` / `ed25519ToX25519SecretKey` — libsodium birational maps. The secret-key variant returns an `ISecureBuffer` (B5 security fix below).
+- **`KnownKeys`** TOFU pin store: `pin`, `get`, `check`, `update`, `list`. File format is `{v, pins, mac}` JSON at the caller-supplied path.
+- **Unlock-sugar wired:** `KeyRing.unlockWithSshKey(pem, passphrase?)` delegates to `StandardTier.unwrap` with `UnlockInput.kind = 'ssh-key'`.
+
+### Security fixes shipped in Phase C
+
+- **B2 (Critical) — RSA-OAEP KEM+DEM empty-AAD.** The chaoskb predecessor encrypted the master under the KEK with `new Uint8Array(0)` as AAD, allowing cross-envelope AEAD-slice substitution under the same RSA key. `StandardTier` now binds the SSH key fingerprint + wrap-context (`"keyring/v1/standard/rsa-kemdem"`) into the envelope's `kid`, which goes into the RFC 8785 canonical-JSON AAD the envelope client constructs. On unwrap, the stored `wrapped.sshFingerprint` is used to recompute the expected kid and compared against the envelope's baked-in `enc.kid` — mismatch → `UnlockFailed` before decryption is attempted. The AEAD tag then enforces the binding cryptographically. Regression test: tampering `wrapped.sshFingerprint` without re-encrypting fails.
+- **B5 (High) — unzeroed `Uint8Array` on Ed25519→X25519 conversion.** `ed25519ToX25519SecretKey` now returns an `ISecureBuffer` (mlock'd via `@de-otio/crypto-envelope`'s `SecureBuffer`) rather than a plain `Uint8Array`. Callers use `dispose()` in a `finally`; the input Ed25519 secret buffer is zeroed after conversion.
+- **B6 (High) — TOFU pin file lacked integrity protection.** `KnownKeys` now HMAC-SHA256-authenticates the pin file under a key derived from the caller's `MasterKey` (`HMAC-SHA256(master, "keyring/v1/tofu-pin-mac")` — 32 bytes, domain-separated from every other use of the master). On read, the MAC is verified before any pin is trusted; mismatch → `TofuPinFileTampered`. Regression tests: tampered fingerprint bytes, different-master reload, missing MAC field, malformed JSON, unsupported file version.
+
+Additional hardening beyond the three design-review findings:
+
+- `sodium.crypto_box_seal_open` return value is checked — the chaoskb code ignored it, which would return `plaintext`-filled-with-uninitialised-bytes on a wrong-key unwrap rather than throwing. Regression: unwrapping with a different Ed25519 private key now raises `UnlockFailed`.
+- Mandatory 2048-bit minimum on RSA keys via `asymmetricKeySize` **with fallback** to reading the modulus length from the parsed SSH wire format (previously skipped when Node omitted `asymmetricKeySize`).
+
+### Deferred from Phase C
+
+- `StandardTier.fromSshAgent()` — ssh-agent socket IPC is deferred to a future phase. Chaoskb's StandardTier usage reads private keys from disk directly (confirmed via call-site survey), so this is not blocking the chaoskb migration. Trellis does not use StandardTier at all.
+
+### Phase C testing (+20 → 84 total)
+
+- `StandardTier` Ed25519 round-trip, wrong-key rejection, wrong-input-kind rejection.
+- `StandardTier` RSA round-trip, wrong-key rejection, **B2 AAD-tamper detection**, under-2048-bit refusal.
+- `KnownKeys` pin / get / check / update / list happy paths, TofuMismatch on fingerprint change, same-fp re-pin refreshes `verifiedAt`.
+- `KnownKeys` B6 MAC: tampered-fingerprint, different-master, malformed JSON, missing-MAC, unsupported-version all raise `TofuPinFileTampered`.
+- `KnownKeys` file hygiene: parent directory created.
+
 ### Added — Phase B (MaximumTier + filesystem storage + minimal KeyRing)
 
 - **`MaximumTier.fromPassphrase(passphrase, params?)`** — Argon2id passphrase-wrapped master, via `@de-otio/crypto-envelope`'s `deriveMasterKeyFromPassphrase` + `EnvelopeClient`. Fresh salt per wrap. OWASP 2023 second-tier defaults (`t=3, m=64 MiB, p=1`); dropping below `t=1, m=8192, p=1` is refused at construction. Unwrap failure surfaces as `WrongPassphrase` (conflates wrong-passphrase with tamper — documented caveat).
