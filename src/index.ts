@@ -1,9 +1,11 @@
 /**
  * `@de-otio/keyring` — key-lifecycle layer on top of `@de-otio/crypto-envelope`.
  *
- * **Pre-alpha.** Public API under construction; runtime classes stubbed until
- * Phase B+ lands. Only types and error classes are stable enough to import
- * today. See `plans/01-extraction.md` for the roadmap.
+ * Pre-alpha. Public API under construction. Phase B scope shipped:
+ * `MaximumTier`, `InMemoryStorage`, `FileSystemStorage`, minimal
+ * `KeyRing`. Phase C adds `StandardTier` (SSH wrap); Phase D adds
+ * `OsKeychainStorage`; Phase E adds browser storage; Phase F adds
+ * project keys + invite.
  */
 
 // Public types — stable surface (Phase A)
@@ -45,7 +47,13 @@ export {
   WrongPassphrase,
 } from './errors.js';
 
-// Runtime classes — stubs until Phase B+
+// Phase B runtime
+export { KeyRing, type KeyRingOptions } from './keyring.js';
+export { MaximumTier, type Argon2idParams } from './tiers/maximum.js';
+export { InMemoryStorage } from './storage/in-memory.js';
+export { FileSystemStorage } from './storage/file-system.js';
+
+// Runtime classes not yet implemented — stubs until their phase lands.
 // Each throws at construction so accidental early use fails loudly.
 
 class NotImplementedError extends Error {
@@ -55,12 +63,7 @@ class NotImplementedError extends Error {
   }
 }
 
-export class KeyRing {
-  constructor(_options: unknown) {
-    throw new NotImplementedError('KeyRing', 'G');
-  }
-}
-
+// Phase C stubs
 export class StandardTier {
   static fromSshAgent(): never {
     throw new NotImplementedError('StandardTier.fromSshAgent', 'C');
@@ -70,36 +73,19 @@ export class StandardTier {
   }
 }
 
-export class MaximumTier {
-  static fromPassphrase(_params?: unknown): never {
-    throw new NotImplementedError('MaximumTier.fromPassphrase', 'B');
-  }
-}
-
+// Phase D stub
 export class OsKeychainStorage {
   constructor(_options?: unknown) {
     throw new NotImplementedError('OsKeychainStorage', 'D');
   }
 }
 
-export class FileSystemStorage {
-  constructor(_options?: unknown) {
-    throw new NotImplementedError('FileSystemStorage', 'B');
-  }
-}
-
-export class InMemoryStorage {
-  constructor() {
-    throw new NotImplementedError('InMemoryStorage', 'B');
-  }
-}
-
-/** Placeholder for `rotateMaster`; real implementation lands in Phase G. */
+// Phase G stub (was listed as G in the plan after scope cut)
 export function rotateMaster(
   _oldMaster: unknown,
   _newMaster: unknown,
   _enumerator: unknown,
   _options?: unknown,
 ): never {
-  throw new NotImplementedError('rotateMaster', 'G');
+  throw new NotImplementedError('rotateMaster', 'G (deferred to keyring 0.2)');
 }
