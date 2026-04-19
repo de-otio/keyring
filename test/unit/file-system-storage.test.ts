@@ -48,7 +48,9 @@ describe('FileSystemStorage', () => {
         expect(got.kdfParams.t).toBe(3);
         expect(got.kdfParams.m).toBe(65_536);
         expect(got.kdfParams.p).toBe(1);
-        expect(Buffer.from(got.kdfParams.salt).equals(Buffer.from(w.kdfParams!.salt))).toBe(true);
+        const wKdf = w.kdfParams;
+        if (wKdf?.algorithm !== 'argon2id') throw new Error('fixture drift');
+        expect(Buffer.from(got.kdfParams.salt).equals(Buffer.from(wKdf.salt))).toBe(true);
       } else {
         expect.fail('expected argon2id kdfParams');
       }
@@ -86,18 +88,20 @@ describe('FileSystemStorage', () => {
 
     it('persists sshFingerprint through round-trip', async () => {
       const s = new FileSystemStorage({ root });
-      const w = wrappedFixture({
-        tier: 'standard',
-        kdfParams: undefined,
-        sshFingerprint: 'SHA256:abc123',
-      });
+      const base = wrappedFixture({ tier: 'standard' });
+      const { kdfParams: _discard, ...rest } = base;
+      const w: WrappedKey = { ...rest, sshFingerprint: 'SHA256:abc123' };
       await s.put('ssh', w);
       const got = await s.get('ssh');
       expect(got?.sshFingerprint).toBe('SHA256:abc123');
     });
   });
 
-  describe('security posture', () => {
+  // POSIX permission bits do not map onto Windows ACLs — Node reports
+  // 0o666 regardless of the requested mode. Skip the security-posture
+  // tests on Windows; ACL handling is a follow-up for Phase D (OS
+  // keychain is preferred on Windows anyway).
+  describe.skipIf(process.platform === 'win32')('security posture (POSIX)', () => {
     it('writes files with 0600 permissions', async () => {
       const s = new FileSystemStorage({ root });
       await s.put('slot', wrappedFixture());

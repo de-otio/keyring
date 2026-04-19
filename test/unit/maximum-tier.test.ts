@@ -76,17 +76,21 @@ describe('MaximumTier round-trip', ARGON2_TIMEOUT, () => {
     expect(Buffer.from(recovered.buffer).equals(Buffer.from(master.buffer))).toBe(true);
   });
 
-  it('fresh salt per wrap — two wraps produce different envelopes', { timeout: 120_000 }, async () => {
-    const tier = MaximumTier.fromPassphrase('pw', FAST_PARAMS);
-    const master = randomMasterKey();
-    const a = await tier.wrap(master);
-    const b = await tier.wrap(master);
-    expect(Buffer.from(a.envelope).equals(Buffer.from(b.envelope))).toBe(false);
-    // Both unwrap successfully.
-    const ra = await tier.unwrap(a, { kind: 'passphrase', passphrase: 'pw' });
-    const rb = await tier.unwrap(b, { kind: 'passphrase', passphrase: 'pw' });
-    expect(Buffer.from(ra.buffer).equals(Buffer.from(rb.buffer))).toBe(true);
-  });
+  it(
+    'fresh salt per wrap — two wraps produce different envelopes',
+    { timeout: 120_000 },
+    async () => {
+      const tier = MaximumTier.fromPassphrase('pw', FAST_PARAMS);
+      const master = randomMasterKey();
+      const a = await tier.wrap(master);
+      const b = await tier.wrap(master);
+      expect(Buffer.from(a.envelope).equals(Buffer.from(b.envelope))).toBe(false);
+      // Both unwrap successfully.
+      const ra = await tier.unwrap(a, { kind: 'passphrase', passphrase: 'pw' });
+      const rb = await tier.unwrap(b, { kind: 'passphrase', passphrase: 'pw' });
+      expect(Buffer.from(ra.buffer).equals(Buffer.from(rb.buffer))).toBe(true);
+    },
+  );
 
   it('rejects unwrap with wrong input.kind', async () => {
     const tier = MaximumTier.fromPassphrase('pw', FAST_PARAMS);
@@ -119,7 +123,8 @@ describe('InMemoryStorage integration with MaximumTier', ARGON2_TIMEOUT, () => {
     expect(roundTripped).not.toBeNull();
     expect(roundTripped?.tier).toBe('maximum');
 
-    const recovered = await tier.unwrap(roundTripped!, {
+    if (!roundTripped) throw new Error('round-tripped wrapped key was null');
+    const recovered = await tier.unwrap(roundTripped, {
       kind: 'passphrase',
       passphrase: 'pw',
     });

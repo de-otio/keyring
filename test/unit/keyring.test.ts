@@ -1,6 +1,11 @@
 import { SecureBuffer, asMasterKey } from '@de-otio/crypto-envelope';
 import { describe, expect, it } from 'vitest';
-import { AlreadyUnlocked, NotUnlocked, TierStorageMismatch, WrongPassphrase } from '../../src/errors.js';
+import {
+  AlreadyUnlocked,
+  NotUnlocked,
+  TierStorageMismatch,
+  WrongPassphrase,
+} from '../../src/errors.js';
 import { KeyRing } from '../../src/keyring.js';
 import { InMemoryStorage } from '../../src/storage/in-memory.js';
 import { MaximumTier } from '../../src/tiers/maximum.js';
@@ -19,12 +24,12 @@ describe('KeyRing (Phase B minimal surface)', ARGON2_TIMEOUT, () => {
     it('throws TierStorageMismatch when storage refuses the tier kind', () => {
       const tier = MaximumTier.fromPassphrase('x', FAST_PARAMS);
       const standardOnly = new InMemoryStorage<'standard'>({ acceptedTiers: ['standard'] });
+      // deliberately evade the type-level check to exercise the runtime fallback
       expect(
         () =>
-          new KeyRing({
-            // deliberately evade the type-level check to exercise the runtime fallback
-            tier: tier as unknown as Parameters<typeof KeyRing>[0]['tier'],
-            storage: standardOnly as unknown as Parameters<typeof KeyRing>[0]['storage'],
+          new (KeyRing as unknown as new (opts: unknown) => unknown)({
+            tier,
+            storage: standardOnly,
           }),
       ).toThrow(TierStorageMismatch);
     });
