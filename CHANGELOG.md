@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.1] - 2026-04-19
+
+First usable alpha. Ships Phases B, C, D, E, F from the extraction plan.
+Phases G (rotation orchestration), H (chaoskb migration), I (trellis
+migration), J6 (SECURITY.md final review) are deferred to follow-up
+alphas. No `@latest` dist-tag until chaoskb + trellis each ship a
+production release on this line.
+
+**Critical/High security fixes shipped:** B2 (RSA-OAEP KEM+DEM empty-AAD
+→ kid-bound canonical-JSON AAD), B5 (Ed25519→X25519 secret returns
+`ISecureBuffer` with mlock+zero), B6 (TOFU pin file now HMAC-SHA256
+authenticated under the master). **Medium fixes:** S1 (project-key HKDF
+info now includes project name, bound via envelope kid), B4 (X25519
+small-order points rejected via `@noble/curves` in the age-delegated
+invite flow).
+
 ### Added — Phase F (Project keys + age-invite flow with S1 + B4 security fixes)
 
 - **`createProjectKey(master, projectName)` / `unwrapProjectKey(master, wrapped)`** in `src/project-keys.ts` — wrap/unwrap per-project 32-byte symmetric keys under the personal master. Uses `EnvelopeClient` so the wrapped form is a self-authenticating v1 envelope with RFC 8785 canonical-JSON AAD.
