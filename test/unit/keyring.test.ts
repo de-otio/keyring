@@ -11,7 +11,7 @@ import { InMemoryStorage } from '../../src/storage/in-memory.js';
 import { MaximumTier } from '../../src/tiers/maximum.js';
 
 const FAST_PARAMS = { t: 1, m: 8192, p: 1 };
-const ARGON2_TIMEOUT = { timeout: 30_000 };
+const ARGON2_TIMEOUT = { timeout: 60_000 };
 
 function randomMasterKey() {
   const bytes = new Uint8Array(32);

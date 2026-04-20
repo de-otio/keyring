@@ -5,10 +5,11 @@ import { InMemoryStorage } from '../../src/storage/in-memory.js';
 import { MaximumTier } from '../../src/tiers/maximum.js';
 import type { WrappedKey } from '../../src/types.js';
 
-// Argon2id at t=3, m=64 MiB takes ~2-3s on noble; bump the timeout for
-// every test that exercises the real parameters. Tests that can use
-// weakened params do so.
-const ARGON2_TIMEOUT = { timeout: 30_000 };
+// Argon2id at t=3, m=64 MiB takes ~2-3s on noble uninstrumented; under
+// v8 coverage instrumentation it can exceed 10s per derivation. Bump
+// the timeout for every test that exercises the real parameters.
+// Tests that can use weakened params do so.
+const ARGON2_TIMEOUT = { timeout: 60_000 };
 
 function randomMasterKey() {
   const bytes = new Uint8Array(32);

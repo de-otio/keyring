@@ -109,7 +109,7 @@ describe('StandardTier — RSA path (with B2 AAD fix)', () => {
     expect(Buffer.from(recovered.buffer).equals(Buffer.from(master.buffer))).toBe(true);
   });
 
-  it('rejects an envelope wrapped to a different RSA public key', { timeout: 30_000 }, async () => {
+  it('rejects an envelope wrapped to a different RSA public key', { timeout: 60_000 }, async () => {
     const a = generateRsaPair();
     const b = generateRsaPair();
     const tier = StandardTier.fromSshKey(a.sshPub);
