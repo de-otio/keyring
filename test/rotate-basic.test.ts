@@ -28,7 +28,7 @@ import type { KeyRingEvent } from '../src/types.js';
 import { fakeEnumerator, fakeEnvelope } from './helpers/fake-enumerator.js';
 
 const FAST_PARAMS = { t: 1, m: 8192, p: 1 };
-const ARGON2_TIMEOUT = { timeout: 60_000 };
+const ARGON2_TIMEOUT = { timeout: 120_000 };
 
 function randomMasterKey(): MasterKey {
   const bytes = new Uint8Array(32);
@@ -65,25 +65,23 @@ describe('KeyRing.rotate (Phase G basic)', ARGON2_TIMEOUT, () => {
   });
 
   it('happy path: rotates every envelope and reports no outstanding old-master requirement', async () => {
-    const { ring, tier } = await unlockedRing();
+    // Build one ring with an events sink so we can assert lifecycle
+    // events. Only one KDF path here (setup + unlock) — keeps the
+    // total Argon2id work under coverage's budget.
     const events: KeyRingEvent[] = [];
-    const ring2 = ring; // alias to avoid shadowing in the sink closure
-
-    // Replace the ring with one that has an events sink so we can assert
-    // the lifecycle events fired in the right order.
-    const storage2 = new InMemoryStorage();
-    const tier2 = MaximumTier.fromPassphrase('secret', FAST_PARAMS);
-    const withEvents = new KeyRing({
-      tier: tier2,
-      storage: storage2,
+    const storage = new InMemoryStorage();
+    const tier = MaximumTier.fromPassphrase('secret', FAST_PARAMS);
+    const ring = new KeyRing({
+      tier,
+      storage,
       events: { emit: (e) => events.push(e) },
     });
-    await withEvents.setup(randomMasterKey());
-    await withEvents.unlockWithPassphrase('secret');
+    await ring.setup(randomMasterKey());
+    await ring.unlockWithPassphrase('secret');
 
     const envs = envelopes(10);
     const enumerator = fakeEnumerator({ envelopes: envs });
-    const result = await withEvents.rotate(tier2, enumerator);
+    const result = await ring.rotate(tier, enumerator);
 
     expect(result.rotated).toBe(10);
     expect(result.skipped).toBe(0);
@@ -99,9 +97,6 @@ describe('KeyRing.rotate (Phase G basic)', ARGON2_TIMEOUT, () => {
     expect(events.at(-1)?.kind).toBe('rotate-complete');
     const rewrapEvents = events.filter((e) => e.kind === 'blob-rewrapped');
     expect(rewrapEvents).toHaveLength(10);
-
-    // Silence the unused-ring warning — setup ran on `ring2` too.
-    expect(ring2.isUnlocked).toBe(true);
   });
 
   it('aborts mid-run and reports partial progress with oldMasterStillRequired=true', async () => {
