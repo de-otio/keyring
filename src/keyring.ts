@@ -1,6 +1,18 @@
-import type { MasterKey } from '@de-otio/crypto-envelope';
+import { randomBytes } from 'node:crypto';
+import type { AnyEnvelope, MasterKey } from '@de-otio/crypto-envelope';
+import { SecureBuffer, asMasterKey, rewrapEnvelope } from '@de-otio/crypto-envelope';
 import { AlreadyUnlocked, NotUnlocked, TierStorageMismatch } from './errors.js';
-import type { KeyStorage, Tier, TierKind, UnlockInput, WrappedKey } from './types.js';
+import type {
+  BlobEnumerator,
+  EventSink,
+  KeyStorage,
+  RotateOptions,
+  RotationResult,
+  Tier,
+  TierKind,
+  UnlockInput,
+  WrappedKey,
+} from './types.js';
 
 /**
  * Default slot name for the personal master. Reserved; callers cannot
@@ -15,6 +27,10 @@ export interface KeyRingOptions<K extends TierKind> {
    *  the reserved `__personal` slot; override for multi-tenancy within
    *  a single storage. */
   slot?: string;
+  /** Optional sink for key-lifecycle events. SOC 2 CC6.1 / CC7.2
+   *  consumers pipe these into their audit log; the library does not
+   *  persist them. */
+  events?: EventSink;
 }
 
 /**
@@ -39,6 +55,7 @@ export class KeyRing<K extends TierKind = TierKind> {
   private readonly tier: Tier<K>;
   private readonly storage: KeyStorage<K>;
   private readonly slot: string;
+  private readonly events: EventSink | undefined;
   private master: MasterKey | null = null;
   private lastUnlockInputKind: UnlockInput['kind'] | null = null;
 
@@ -49,6 +66,7 @@ export class KeyRing<K extends TierKind = TierKind> {
     this.tier = options.tier;
     this.storage = options.storage;
     this.slot = options.slot ?? PERSONAL_SLOT;
+    this.events = options.events;
   }
 
   get isUnlocked(): boolean {
@@ -160,5 +178,225 @@ export class KeyRing<K extends TierKind = TierKind> {
   async delete(): Promise<void> {
     await this.lock();
     await this.storage.delete(this.slot);
+  }
+
+  /**
+   * Rotate every envelope yielded by `enumerator` from the current
+   * master to a freshly-generated new master.
+   *
+   * ## Semantics
+   *
+   * 1. Requires the ring to be unlocked (the current master is the
+   *    `oldMaster` handed to `rewrapEnvelope`). Throws {@link NotUnlocked}
+   *    otherwise.
+   * 2. Generates a fresh 32-byte random master via
+   *    `crypto.randomBytes(32)` and brands it as a `MasterKey`.
+   * 3. Iterates the enumerator; for each envelope calls
+   *    `rewrapEnvelope(env, oldMaster, newMaster)` and then
+   *    `enumerator.persist(rewrapped, signal)`.
+   * 4. Honours bounded concurrency via a small semaphore
+   *    (`batchSize`, default 8). Never holds more than `batchSize`
+   *    in-flight rewrap/persist tasks in memory at any time.
+   * 5. Returns a {@link RotationResult} including `newMaster`. The
+   *    caller is responsible for:
+   *      - calling `newTier.wrap(newMaster)` + `storage.put(slot, ...)` to
+   *        persist the new wrapped master, **only** after checking
+   *        `oldMasterStillRequired === false`, and
+   *      - calling `newMaster.dispose()` to zero its bytes when done.
+   *
+   * ## `newTier` argument
+   *
+   * `newTier` is accepted to match the type signature (from
+   * `types.ts`) and document intent: the caller has already decided
+   * which tier the new master should land under. `rotate()` itself
+   * does **not** swap `this.tier` nor write to storage — that is
+   * consumer-driven (see plan-04 §"Interface contracts", the
+   * explicit-consumer-control resolution). A future phase may auto-
+   * swap storage using `newTier`; right now it is reserved.
+   *
+   * ## Abort
+   *
+   * `options.signal` is checked between each rewrap; if it fires, the
+   * method resolves with a partial result and `oldMasterStillRequired:
+   * true`. The signal is forwarded to `enumerate()` and `persist()` so
+   * consumer code can react. If `persist()` rejects with an
+   * `AbortError` mid-await, the rejection flows out through the
+   * `failed[]` list with `retriable: true`.
+   *
+   * ## Failure modes
+   *
+   * - `rewrapEnvelope` throws (tampered or decrypt-fail) → the entry
+   *   lands in `failed[]` with `retriable: false`.
+   * - `persist` rejects → the entry lands in `failed[]` with
+   *   `retriable: true`.
+   *
+   * In either case rotation continues with the remaining envelopes;
+   * the caller retries failures via `startAfter: lastPersistedId`.
+   *
+   * ## **Not safe inside an MV3 service worker.**
+   *
+   * Service workers terminate after 30 seconds of idle, which can kill
+   * a rotation mid-flight. Drive rotation from a persistent extension
+   * page instead. A `rotateBatch` primitive for worker-driven
+   * cursor-paginated rotation may land in v0.2.
+   *
+   * @param newTier Reserved; see "`newTier` argument" above.
+   * @param enumerator Caller-supplied iterator + persister; only the
+   *   consumer knows their blob layout.
+   * @param options Concurrency, resume cursor, abort signal.
+   */
+  async rotate(
+    _newTier: Tier<K>,
+    enumerator: BlobEnumerator,
+    options?: RotateOptions,
+  ): Promise<RotationResult> {
+    if (!this.master) {
+      throw new NotUnlocked('KeyRing.rotate called before unlock()');
+    }
+    const oldMaster = this.master;
+
+    const batchSize = options?.batchSize ?? 8;
+    if (!Number.isInteger(batchSize) || batchSize < 1) {
+      throw new Error(`KeyRing.rotate: batchSize must be a positive integer, got ${batchSize}`);
+    }
+
+    const signal = options?.signal;
+
+    // Fresh new master for the rewrap target. SecureBuffer copies the
+    // plaintext and zeroes our transient buffer below.
+    const newMasterBytes = randomBytes(32);
+    let newMaster: MasterKey;
+    try {
+      newMaster = asMasterKey(SecureBuffer.from(newMasterBytes));
+    } finally {
+      newMasterBytes.fill(0);
+    }
+
+    const result: {
+      rotated: number;
+      skipped: number;
+      failed: Array<{ id: string; error: Error; retriable: boolean }>;
+      lastPersistedId: string | null;
+      oldMasterStillRequired: boolean;
+    } = {
+      rotated: 0,
+      skipped: 0,
+      failed: [],
+      lastPersistedId: null,
+      oldMasterStillRequired: false,
+    };
+
+    const nowIso = () => new Date().toISOString();
+
+    this.events?.emit({
+      kind: 'rotate-start',
+      oldFingerprint: '',
+      newFingerprint: '',
+      ts: nowIso(),
+    });
+
+    // Bounded-concurrency semaphore: Set<Promise> of in-flight tasks.
+    // Before starting a new task, if the set is at `batchSize`,
+    // await Promise.race to let at least one slot free up. Each task
+    // removes itself from the set on settle (via .finally). This gives
+    // FIFO-ish persist ordering without any extra dependency.
+    const inflight = new Set<Promise<void>>();
+
+    const enumerateOpts: { startAfter?: string; signal?: AbortSignal } = {};
+    if (options?.startAfter !== undefined) enumerateOpts.startAfter = options.startAfter;
+    if (signal !== undefined) enumerateOpts.signal = signal;
+
+    /**
+     * Process a single envelope. Never rejects — all errors are
+     * captured into `result.failed` with the right `retriable` flag.
+     * Runs sequentially to completion: rewrap → persist → bookkeep.
+     */
+    const processOne = async (env: AnyEnvelope, myIndex: number): Promise<void> => {
+      let rewrapped: AnyEnvelope;
+      try {
+        rewrapped = rewrapEnvelope(env, oldMaster, newMaster);
+      } catch (e) {
+        result.failed.push({
+          id: env.id,
+          error: e instanceof Error ? e : new Error(String(e)),
+          retriable: false,
+        });
+        return;
+      }
+
+      try {
+        await enumerator.persist(rewrapped, signal);
+      } catch (e) {
+        result.failed.push({
+          id: env.id,
+          error: e instanceof Error ? e : new Error(String(e)),
+          retriable: true,
+        });
+        return;
+      }
+
+      result.rotated++;
+      result.lastPersistedId = env.id;
+      this.events?.emit({
+        kind: 'blob-rewrapped',
+        id: env.id,
+        index: myIndex,
+        total: null,
+        ts: nowIso(),
+      });
+    };
+
+    let index = 0;
+    try {
+      for await (const env of enumerator.enumerate(enumerateOpts)) {
+        if (signal?.aborted) break;
+
+        let abortedDuringDrain = false;
+        while (inflight.size >= batchSize) {
+          // Race returns with the first settled task; that task's
+          // .finally handler (attached below) has already removed it
+          // from the set.
+          await Promise.race(inflight);
+          if (signal?.aborted) {
+            abortedDuringDrain = true;
+            break;
+          }
+        }
+        if (abortedDuringDrain) break;
+
+        const myIndex = index++;
+        const task = processOne(env, myIndex);
+        inflight.add(task);
+        task.finally(() => inflight.delete(task));
+      }
+
+      // Drain — wait for every in-flight task to settle before we
+      // finalise the result. `processOne` never rejects, but
+      // allSettled is the defensive choice.
+      await Promise.allSettled(inflight);
+    } finally {
+      if (signal?.aborted || result.failed.length > 0) {
+        result.oldMasterStillRequired = true;
+      }
+
+      this.events?.emit({
+        kind: 'rotate-complete',
+        result: {
+          rotated: result.rotated,
+          skipped: result.skipped,
+          oldMasterStillRequired: result.oldMasterStillRequired,
+        },
+        ts: nowIso(),
+      });
+    }
+
+    return {
+      rotated: result.rotated,
+      skipped: result.skipped,
+      failed: result.failed,
+      lastPersistedId: result.lastPersistedId,
+      oldMasterStillRequired: result.oldMasterStillRequired,
+      newMaster,
+    };
   }
 }

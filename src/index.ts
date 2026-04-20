@@ -99,22 +99,6 @@ export {
   invite,
 } from './invite.js';
 
-// Runtime classes not yet implemented — stubs until their phase lands.
-// Each throws at construction so accidental early use fails loudly.
-
-class NotImplementedError extends Error {
-  constructor(name: string, phase: string) {
-    super(`${name} is not yet implemented (landing in Phase ${phase}); see plans/01-extraction.md`);
-    this.name = 'NotImplementedError';
-  }
-}
-
-// Phase G stub (deferred to keyring 0.2).
-export function rotateMaster(
-  _oldMaster: unknown,
-  _newMaster: unknown,
-  _enumerator: unknown,
-  _options?: unknown,
-): never {
-  throw new NotImplementedError('rotateMaster', 'G (deferred to keyring 0.2)');
-}
+// Phase G runtime — rotation is a method on `KeyRing` (see `KeyRing.rotate`),
+// not a free function. The previous `rotateMaster` throwing-stub has been
+// removed now that the method is implemented.
