@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0-alpha.2] — 2026-04-19
+
+### Added
+- `KeyRing.rotate(newTier, enumerator, options)` — master-key rotation orchestration over `@de-otio/crypto-envelope`'s new `rewrapEnvelope` primitive. Resumable via `startAfter` cursor; bounded concurrency via `batchSize` (default 8); `AbortSignal` propagation; `rotate-start` / `blob-rewrapped` / `rotate-complete` events.
+
+### Changed
+- Bumped `@de-otio/crypto-envelope` peer to `^0.2.0-alpha.2` for `rewrapEnvelope`.
+
+### Notes
+- `rotate()` is **not safe in an MV3 service worker** — 30s idle timeout can kill a run mid-flight. See the method's JSDoc for the recommended pattern.
+- Commitment-based idempotent skip is deferred to a later alpha; re-running `rotate()` on already-rotated envelopes re-does the work without harm.
+
 ## [0.1.0-alpha.1] - 2026-04-19
 
 First usable alpha. Ships Phases B, C, D, E, F from the extraction plan.

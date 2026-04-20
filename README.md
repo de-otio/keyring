@@ -73,6 +73,25 @@ await ring.withMaster(async (master) => {
 });
 ```
 
+## Rotating a master
+
+`KeyRing.rotate(newTier, enumerator, options)` orchestrates a rewrap of every envelope under the new master via `@de-otio/crypto-envelope`'s `rewrapEnvelope` primitive. The consumer owns the enumerator (only they know their blob layout); keyring owns batching, abort plumbing, and events. The call is resumable — feed `result.lastPersistedId` back as `startAfter` on the next run.
+
+```ts
+import { KeyRing, StandardTier, FileSystemStorage, type BlobEnumerator } from '@de-otio/keyring';
+
+const ring = new KeyRing({
+  tier: StandardTier.fromSshKey(oldPub),
+  storage: new FileSystemStorage({ root: '/opt/app/keys' }),
+});
+await ring.unlockWithSshKey(priv);
+
+const result = await ring.rotate(StandardTier.fromSshKey(newPub), myEnumerator, { batchSize: 8 });
+console.log(`rotated ${result.rotated}; oldMasterStillRequired=${result.oldMasterStillRequired}`);
+```
+
+`rotate()` is **not safe in an MV3 service worker** (30s idle termination can kill a run mid-flight). Drive rotation from an extension page or a Node backend instead.
+
 ## Design principles
 
 1. **Safe by construction.** Passing a passphrase-derived master to browser-scoped storage is a **compile-time error** (capability-typed `KeyStorage<K>`), not a runtime refusal. Mlock-less browser buffers require explicit `insecureMemory: true` acknowledgement at the `KeyRing` constructor.
