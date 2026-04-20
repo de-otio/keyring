@@ -152,6 +152,22 @@ export interface RotationResult {
   /** `true` when `failed.length > 0` or `signal` aborted. Consumer must
    *  retain the old wrapped master until this is `false`. */
   oldMasterStillRequired: boolean;
+  /**
+   * The fresh master that rewraps were performed under. Set only when rotate
+   * ran to completion (even with partial failure or abort) so that a
+   * resumable follow-up run can reuse the same new master instead of
+   * minting yet another.
+   *
+   * The consumer owns the lifetime: call `newMaster.dispose()` after wrapping
+   * it under the `newTier` for storage. If this field is missing, rotate
+   * failed before a new master was generated.
+   *
+   * See plan-04 §"Interface contracts" — the explicit-consumer-control
+   * resolution means `rotate()` does not swap `this.tier` / stored wrapped
+   * master automatically; the caller wraps this `newMaster` via
+   * `newTier.wrap(newMaster)` and puts the result into storage themselves.
+   */
+  newMaster?: MasterKey;
 }
 
 // ── Rotation policy / threshold events ────────────────────────────────────
