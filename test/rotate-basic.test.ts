@@ -2,18 +2,23 @@ import { SecureBuffer, asMasterKey } from '@de-otio/crypto-envelope';
 import type { AnyEnvelope, MasterKey } from '@de-otio/crypto-envelope';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock the local `rewrap` stub so the orchestrator can be exercised
-// without the real crypto-envelope primitive landing first. The mock is
-// a simple passthrough that tags the envelope's `id` so tests can tell
-// rewrapped envelopes apart from originals. Integration replaces the
-// stub's source with an import of `@de-otio/crypto-envelope`; this
-// mock continues to work because it targets the same module path.
-vi.mock('../src/_stubs/rewrap.js', () => ({
-  rewrapEnvelope: vi.fn((env: AnyEnvelope, _old: MasterKey, _new: MasterKey): AnyEnvelope => {
-    // Deep clone so tests can assert the original envelope is not mutated.
-    return JSON.parse(JSON.stringify(env)) as AnyEnvelope;
-  }),
-}));
+// Mock crypto-envelope's `rewrapEnvelope` so the orchestrator can be
+// exercised with a simple passthrough. The real primitive is covered
+// in the crypto-envelope repo; here we just need `rotate()` to hand
+// an envelope in and get one back without performing AEAD work.
+vi.mock('@de-otio/crypto-envelope', async () => {
+  const actual = await vi.importActual<typeof import('@de-otio/crypto-envelope')>(
+    '@de-otio/crypto-envelope',
+  );
+  return {
+    ...actual,
+    rewrapEnvelope: vi.fn(
+      (env: AnyEnvelope, _old: MasterKey, _new: MasterKey): AnyEnvelope =>
+        // Deep clone so tests can assert the original envelope is not mutated.
+        JSON.parse(JSON.stringify(env)) as AnyEnvelope,
+    ),
+  };
+});
 
 import { NotUnlocked } from '../src/errors.js';
 import { KeyRing } from '../src/keyring.js';

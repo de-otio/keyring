@@ -1,7 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import type { AnyEnvelope, MasterKey } from '@de-otio/crypto-envelope';
-import { SecureBuffer, asMasterKey } from '@de-otio/crypto-envelope';
-import { rewrapEnvelope } from './_stubs/rewrap.js';
+import { SecureBuffer, asMasterKey, rewrapEnvelope } from '@de-otio/crypto-envelope';
 import { AlreadyUnlocked, NotUnlocked, TierStorageMismatch } from './errors.js';
 import type {
   BlobEnumerator,

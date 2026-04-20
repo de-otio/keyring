@@ -243,20 +243,17 @@ describe('KeyRing.rotate — extended (stress / abort / idempotence)', ARGON2_TI
       expect(first.failed).toEqual([]);
       expect(first.oldMasterStillRequired).toBe(false);
 
-      // Re-seed enumerator: the rotated envelopes are now the input.
-      // After integration the consumer's enumerator would iterate
-      // storage-backed blobs that already hold the rewrapped envelopes.
-      const rotatedInputs = Array.from(enumerator.persisted.values());
-      const enumerator2 = makeFakeEnumerator({ envelopes: rotatedInputs });
-      // Second run: Phase G has **no commitment-based skip** (scope cut
-      // per plans/04-phase-g-execution.md). The skip-by-commitment
-      // optimisation lands in a later alpha; for now re-running re-does
-      // the work without harm. So we still expect `rotated === 100`.
+      // Second run against the **same** input envelopes. Phase G has
+      // no commitment-based skip (scope cut per
+      // plans/04-phase-g-execution.md), so re-running against the same
+      // inputs re-does the work. The ring still holds the original
+      // master (rotate doesn't auto-swap), so the old-master-encrypted
+      // envelopes decrypt fine and are rewrapped under a fresh master.
       //
-      // Worker B is rotating from the NEW master (just swapped) to a
-      // newer-new master; we mint it here.
-      const newerTier = MaximumTier.fromPassphrase('pw3-newer', FAST_PARAMS);
-      const second = await asRotatable(ring).rotate(newerTier, enumerator2, { batchSize });
+      // Consumer-side idempotence (skip-by-commitment when the
+      // envelope is already on the new master) lands in a later alpha.
+      const enumerator2 = makeFakeEnumerator({ envelopes });
+      const second = await asRotatable(ring).rotate(newTier, enumerator2, { batchSize });
       expect(second.rotated).toBe(100);
       expect(second.failed).toEqual([]);
       expect(second.oldMasterStillRequired).toBe(false);
