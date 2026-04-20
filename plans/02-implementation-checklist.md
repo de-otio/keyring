@@ -79,7 +79,7 @@ All tasks inherit the plan's security invariants: security fixes are **mandatory
 | A5a | haiku | N/A | `README.md` — pre-alpha banner, install, browser escape-hatch import path, algorithm-selection guidance, link to SECURITY.md |
 | A5b | haiku | N/A | `SECURITY.md` — threat model, browser posture, `sshpk` acceptance, StandardTier EU adequacy, TOFU + MAC |
 | A5c | haiku | N/A | `CHANGELOG.md` — `[Unreleased]` section with planned additions |
-| A5d | haiku | N/A | `docs/migration-from-chaoskb.md` — skeleton; filled during Phase H |
+| A5d | haiku | N/A | ~~`docs/migration-from-chaoskb.md` — skeleton; filled during Phase H~~ (retired with Phase H, 2026-04-20) |
 
 **Phase A exit criteria:**
 - `npm install` succeeds (peer-dep unresolved is OK during dev)
@@ -146,7 +146,7 @@ All tasks inherit the plan's security invariants: security fixes are **mandatory
 | D3 | 🟢 | sonnet | N/A (integration) | Nightly integration test: real macOS / Linux keychain round-trip; Windows on self-hosted runner or manual |
 | D4 | 🟢 | sonnet | N/A | Benchmark: `list()` ≤ 50ms for 20 project keys (asserted in CI as perf regression gate) |
 
-**Exit:** chaoskb can substitute `OsKeychainStorage` for its current `keyring.ts`; shell-out code deleted from chaoskb in Phase H.
+**Exit:** chaoskb can substitute `OsKeychainStorage` for its current `keyring.ts`; shell-out code deleted from chaoskb in the clean-cut migration (Phase H was retired — see that section).
 
 ## Phase E — Browser storage (WebExtension + IndexedDB)
 
@@ -191,19 +191,16 @@ B4 (small-order check) and the previously-unflagged invite empty-AAD finding are
 
 **Exit:** stress test green (memory stays bounded under 100k-blob rotation); resumability test proves cursor-based continuation; abort test proves old-master-still-required contract.
 
-## Phase H — Chaoskb migration
+## Phase H — Chaoskb migration — **N/A (retired 2026-04-20)**
 
-**Gate:** Phases B–G green in keyring.
+**Retired in favour of a clean cut.** Chaoskb had no live users or
+persisted data at migration time; H2's legacy decoder path was never
+needed and never shipped. The actual chaoskb migration landed on
+`migrate/crypto-envelope-alpha` at `chaoskb@1fa8008` via the non-legacy
+path (delete duplicates, consume `@de-otio/keyring` directly).
 
-| Task | Parallel | Model | Coverage | Files |
-|---|---|---|---|---|
-| H1 | 🔴 | sonnet | (inherit chaoskb) | Replace chaoskb's `src/crypto/tiers/`, `ssh-*`, `project-keys`, `invite`, `known-keys`, `keyring.ts` with re-exports / adapters |
-| H2 | 🔴 | **opus** | 100% | Migration path for pre-B2-fix RSA wraps: detect old-AAD format, decrypt via legacy path, re-wrap under new AAD, persist |
-| H3 | 🟢 | sonnet | N/A | Migration guide at `chaoskb/docs/migration-from-legacy-crypto.md` |
-| H4 | 🟢 | sonnet | N/A | Chaoskb's full test suite green against keyring |
-| H5 | 🔴 | **opus** | N/A | Security review of the diff (opus as code reviewer; verify B1–B6 security fixes actually applied at the call sites) |
-
-**Exit:** chaoskb full suite green; every on-disk wrapped-master from a pre-keyring chaoskb install decrypts via the migration path; pin pre-keyring SHA for rollback.
+H1/H3/H4/H5 effectively collapsed into that single commit. No
+`docs/migration-from-legacy-crypto.md` was produced; none was needed.
 
 ## Phase I — Trellis migration
 
@@ -244,7 +241,7 @@ B4 (small-order check) and the previously-unflagged invite empty-AAD finding are
 | Phase E (after A) | 2× sonnet (E1, E2) + 1× sonnet (E3, E4, E5) | A green |
 | Phase F (after C) | 1× opus (F1, F2 serialized) + 1× sonnet (F3) | C green |
 | Phase G (after C + CE plan-02 Phase IV) | 1× opus + 1× sonnet | C green, CE plan-02 Phase IV |
-| Phase H (after B–G) | 1× sonnet + 1× opus (H2, H5) | All keyring work |
+| ~~Phase H~~ | ~~retired 2026-04-20 — clean-cut migration, no legacy decoder~~ | ~~All keyring work~~ |
 | Phase I (after B + E) | 1× sonnet | B + E green, CE plan-02 Phase VI |
 | Phase J | 1× sonnet + 1× opus | A–I |
 
@@ -261,7 +258,7 @@ B4 (small-order check) and the previously-unflagged invite empty-AAD finding are
 
 ## Critical path
 
-A → C (opus-heavy, security fixes) → G (opus, cross-repo gate) → H (opus security review) → J
+A → C (opus-heavy, security fixes) → G (opus, cross-repo gate) → ~~H (retired)~~ → J
 
 Elapsed-time estimate assuming spike lands cleanly, crypto-envelope v0.2 ships in parallel, and 4-wide agent parallelism:
 
@@ -271,7 +268,7 @@ Elapsed-time estimate assuming spike lands cleanly, crypto-envelope v0.2 ships i
 - Phase C (serial on opus, security-heavy): ~3 days
 - Phase F (after C): ~1 day
 - Phase G (after C + CE v0.2): ~2 days
-- Phase H (chaoskb migration + security review): ~2 days
+- ~~Phase H (chaoskb migration + security review)~~ retired 2026-04-20
 - Phase I (trellis migration): ~1 day
 - Phase J: ~0.5 day
 

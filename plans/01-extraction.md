@@ -388,13 +388,25 @@ Each phase is one PR, independently reviewable. Tests ported from chaoskb's `__t
 - Tests: happy path, partial-failure + resume, concurrent abort, 100k-blob stress (memory stays bounded), MV3-worker-termination simulation (documents the "not safe" posture, doesn't pretend to handle it)
 - Exit: stress test green; documentation explicitly says MV3 worker rotation is not supported.
 
-### Phase H — Chaoskb migration
+### Phase H — Chaoskb migration — **N/A (retired 2026-04-20)**
 
+**Retired in favour of a clean cut.** Chaoskb had no live users or
+persisted data when the migration landed, so the legacy-decoder path
+described below was never exercised and never shipped. The actual
+chaoskb migration (delete in-tree duplicates, consume `@de-otio/keyring`
+directly) landed on `migrate/crypto-envelope-alpha` at
+`chaoskb@1fa8008`.
+
+The original plan (kept for the archaeological record) was:
 - Replace chaoskb's `src/crypto/tiers/`, `src/crypto/ssh-*`, `src/crypto/project-keys.ts`, `src/crypto/invite.ts`, `src/crypto/known-keys.ts`, `src/crypto/keyring.ts` with re-exports from `@de-otio/keyring`
-- **Migration guide** at `chaoskb/docs/migration-from-legacy-crypto.md` — ships with Phase H
-- **Old-format migration path** for wrapped-masters generated before B2's AAD fix: runtime detects format version, decrypts via legacy path, re-wraps under new AAD, persists. One-way migration.
-- **Rollback plan:** pin pre-keyring chaoskb SHA; 48h monitoring window; dual-maintain if regression reported.
-- Exit: chaoskb's full suite green; every on-disk wrapped-master from a pre-keyring chaoskb install decrypts; migration path exercised by a test that loads a pre-v0.1 fixture.
+- Migration guide at `chaoskb/docs/migration-from-legacy-crypto.md`
+- Old-format migration path for wrapped-masters generated before B2's AAD fix (runtime detects format version, decrypts via legacy path, re-wraps under new AAD, persists — one-way migration)
+- Rollback plan: pin pre-keyring chaoskb SHA; 48h monitoring window
+
+Nothing from §2–§3 of this plan's legacy-decoder strategy shipped; the
+`src/legacy/` directory was never created. If a future chaoskb user
+turns up with a pre-migration install, they'd have to manually
+re-enrol — not a migration path keyring itself supports.
 
 ### Phase I — Trellis migration (Border Safety Mode)
 
