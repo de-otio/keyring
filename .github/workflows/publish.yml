@@ -1,5 +1,11 @@
 name: Publish
 
+# Tag-triggered npm publish via Trusted Publishing (OIDC, no NPM_TOKEN).
+# Scope: BUILD + PUBLISH only. The CI workflow already runs lint /
+# tests / attw on every push; by the time a `v*` tag exists, that
+# commit has already passed. Re-running coverage here was pushing the
+# job past the 10-min wall without adding signal.
+
 on:
   push:
     tags:
@@ -27,9 +33,6 @@ jobs:
 
       - run: npm ci
       - run: npm run build
-      - run: npm run lint
-      - run: npm run test:coverage
-      - run: npm run attw
 
       - name: Select dist-tag from version
         id: disttag
