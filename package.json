@@ -1,6 +1,6 @@
 {
   "name": "@de-otio/keyring",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Key-lifecycle layer on top of @de-otio/crypto-envelope: tier model (SSH-wrap / passphrase), storage backends (OS keychain, WebExtension, IndexedDB, filesystem), SSH interop, TOFU pinning, project keys, ECDH invite, resumable rotation.",
   "license": "MIT",
   "author": {
@@ -99,6 +99,7 @@
     "pkgroll": "^2.20.0",
     "playwright": "^1.55.0",
     "typescript": "~5.9.0",
+    "vite": "^8.0.10",
     "vitest": "^4.1.4"
   }
 }

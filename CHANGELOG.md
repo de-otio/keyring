@@ -7,10 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.2.1] — 2026-04-25
+## [0.2.2] — 2026-04-25
+
+Re-roll of the unreleased `0.2.1` tag, which failed to publish: `vitest@4.1.5` declares `vite` as a non-optional peer dep, so without an explicit consumer-side declaration npm 11 nests vite under `vitest/node_modules/vite`, where the hoisted `@vitest/mocker` can't resolve it — `prepublishOnly`'s `test:coverage` blew up with `ERR_MODULE_NOT_FOUND` before publish ever ran. Fixed by pinning `vite` in `devDependencies`. No runtime / wire-format / public-API changes.
 
 ### Changed
-- Bumped `@de-otio/crypto-envelope` peer range from `^0.3.0-alpha.1` to `^0.3.0` now that the upstream `0.3.0` stable is shipped. No source changes; wire format unchanged.
+- Bumped `@de-otio/crypto-envelope` peer range from `^0.3.0-alpha.1` to `^0.3.0` now that the upstream stable is shipped. No source changes; wire format unchanged.
+
+### Fixed
+- Pinned `vite@^8.0.10` in `devDependencies` to keep it hoisted alongside `@vitest/mocker`. Restores `npm test` / `prepublishOnly` on clean installs.
+
+## [0.2.1] — 2026-04-25 [unreleased — superseded by 0.2.2]
+
+Tagged but never published to npm — `prepublishOnly` failed during the publish workflow due to the vite-hoisting bug fixed in 0.2.2.
 
 ## [0.2.0] — 2026-04-25
 
