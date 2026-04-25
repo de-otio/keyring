@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- Bumped `@de-otio/crypto-envelope` peer to `^0.3.0-alpha.1`. Wire format unchanged (vectors decrypt byte-identically across 0.2.x ↔ 0.3.0-alpha.1); no source changes required. Brings in typed error taxonomy (`EnvelopeError` hierarchy), real browser portability (no `Buffer` global), and an optional `MessageCounter` 4th param on `rewrapEnvelope` for AES-256-GCM nonce-budget tracking.
+- Bumped `engines.node` to `>=22.0.0` to match `@de-otio/crypto-envelope@0.3.0-alpha.1`'s engine floor.
+
 ## [0.1.0-alpha.2] — 2026-04-19
 
 ### Added

@@ -65,14 +65,14 @@
     "prepublishOnly": "npm run build && npm run lint && npm run test:coverage && npm run attw"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=22.0.0"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
   "peerDependencies": {
-    "@de-otio/crypto-envelope": "^0.2.0-alpha.2",
+    "@de-otio/crypto-envelope": "^0.3.0-alpha.1",
     "age-encryption": "^0.3.0"
   },
   "peerDependenciesMeta": {
