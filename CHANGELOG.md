@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-04-25
+
+### Changed
+- Bumped `@de-otio/crypto-envelope` peer range from `^0.3.0-alpha.1` to `^0.3.0` now that the upstream `0.3.0` stable is shipped. No source changes; wire format unchanged.
+
 ## [0.2.0] — 2026-04-25
 
 Promotes `0.2.0-alpha.1` to stable on the `@latest` dist-tag. No code changes since alpha.1; see that entry for the full change set (peer bump to `@de-otio/crypto-envelope@^0.3.0-alpha.1`, `engines.node` floor to `>=22`).
