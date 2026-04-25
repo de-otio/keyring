@@ -4,7 +4,14 @@
     "enabled": true
   },
   "files": {
-    "ignore": ["dist/**", "node_modules/**", "spike/**", "coverage/**", "test/vectors/**"]
+    "ignore": [
+      "dist/**",
+      "node_modules/**",
+      "spike/**",
+      "coverage/**",
+      "test/vectors/**",
+      ".claude/**"
+    ]
   },
   "formatter": {
     "enabled": true,
