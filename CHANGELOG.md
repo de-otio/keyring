@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-04-25
+
+Promotes `0.2.0-alpha.1` to stable on the `@latest` dist-tag. No code changes since alpha.1; see that entry for the full change set (peer bump to `@de-otio/crypto-envelope@^0.3.0-alpha.1`, `engines.node` floor to `>=22`).
+
 ## [0.2.0-alpha.1] — 2026-04-25
 
 Pre-release tracking the `@de-otio/crypto-envelope@0.3.0-alpha.1` peer bump. No keyring API changes — wire format and public surface are byte-identical to `0.1.0-alpha.2`. Minor-version bump reserved for the breaking engine floor move (Node 20 → 22), mirroring crypto-envelope's own 0.2 → 0.3 cut.
