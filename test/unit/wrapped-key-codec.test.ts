@@ -46,7 +46,11 @@ describe('wrapped-key-codec round-trip', () => {
       v: 1,
       tier: 'maximum',
       envelope: new Uint8Array([4, 5, 6]),
-      kdfParams: { algorithm: 'pbkdf2-sha256', iterations: 1_000_000, salt: new Uint8Array([3, 3]) },
+      kdfParams: {
+        algorithm: 'pbkdf2-sha256',
+        iterations: 1_000_000,
+        salt: new Uint8Array([3, 3]),
+      },
       ts: TS,
     };
     const back = deserializeWrappedKey(serializeWrappedKey(w));
