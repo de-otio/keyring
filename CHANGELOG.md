@@ -18,6 +18,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   format is trivially language-portable; a frozen known-answer vector pins the
   v2-CBOR envelope for the forthcoming Dart port. Additive — no change to
   existing tiers or the wrapped-key wire format.
+- **`RemoteServerStorage`** — a `KeyStorage` backed by a remote, server-blind
+  blob store. Serialises the wrapped master to an opaque string and delegates
+  transport to an injected `RemoteBlobTransport` (the consuming app supplies
+  endpoints/auth/slot-mapping), so the library stays API-agnostic. **Defaults to
+  `acceptedTiers: ['recovery-key']`** and refuses other tiers at the `put`
+  boundary — a security decision: a server must not hold an offline-grindable
+  passphrase/SSH-wrapped master.
+- **`serializeWrappedKey` / `deserializeWrappedKey`** (+ `SerialisedWrappedKey`)
+  — the canonical Node-string wrapped-key codec, now the single source of truth
+  for the filesystem, OS-keychain, and remote backends (previously duplicated
+  per backend). Handles all three tiers including `recovery-key`.
+
+### Fixed
+- The filesystem, OS-keychain, WebExtension, and IndexedDB backends rejected a
+  `recovery-key`-tier wrapped key on deserialise (their tier guards predated the
+  tier). All four now accept it; the Node backends share one codec.
 
 ## [0.2.2] — 2026-04-25
 

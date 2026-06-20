@@ -53,6 +53,16 @@ export { MaximumTier, type Argon2idParams } from './tiers/maximum.js';
 export { RecoveryKeyTier, RECOVERY_KEY_BYTES } from './tiers/recovery-key.js';
 export { InMemoryStorage } from './storage/in-memory.js';
 export { FileSystemStorage } from './storage/file-system.js';
+export {
+  RemoteServerStorage,
+  type RemoteBlobTransport,
+  type RemoteServerStorageOptions,
+} from './storage/remote-server.js';
+export {
+  serializeWrappedKey,
+  deserializeWrappedKey,
+  type SerialisedWrappedKey,
+} from './storage/wrapped-key-codec.js';
 
 // Phase C runtime
 export { StandardTier } from './tiers/standard.js';

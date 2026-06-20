@@ -217,7 +217,7 @@ function deserialiseRecord(raw: unknown): WrappedKey {
   if (parsed.v !== 1) {
     throw new Error(`unsupported wrapped-key wire version: ${parsed.v}`);
   }
-  if (parsed.tier !== 'standard' && parsed.tier !== 'maximum') {
+  if (parsed.tier !== 'standard' && parsed.tier !== 'maximum' && parsed.tier !== 'recovery-key') {
     throw new Error(`unsupported tier kind: ${parsed.tier}`);
   }
   const wrapped: WrappedKey = {
