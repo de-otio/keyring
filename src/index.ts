@@ -110,6 +110,17 @@ export {
   identityToRecipient,
   invite,
 } from './invite.js';
+export {
+  DEVICE_LINK_SAS_DIGITS,
+  DEVICE_LINK_SECRET_BYTES,
+  authorizeDeviceLink,
+  beginDeviceLink,
+  completeDeviceLink,
+  deviceLinkSas,
+  type DeviceLinkCompletion,
+  type DeviceLinkGrant,
+  type DeviceLinkOffer,
+} from './device-link.js';
 
 // Phase G runtime — rotation is a method on `KeyRing` (see `KeyRing.rotate`),
 // not a free function. The previous `rotateMaster` throwing-stub has been

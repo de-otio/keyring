@@ -29,6 +29,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   — the canonical Node-string wrapped-key codec, now the single source of truth
   for the filesystem, OS-keychain, and remote backends (previously duplicated
   per backend). Handles all three tiers including `recovery-key`.
+- **Device-link** (`beginDeviceLink`, `authorizeDeviceLink`, `completeDeviceLink`,
+  `deviceLinkSas`) — transfer a 32-byte master/recovery key from an unlocked
+  device to a new device of the same user over the authenticated age channel,
+  with a **Short Authentication String** the user compares on both screens to
+  detect a machine-in-the-middle (a substituted recipient diverges the two
+  codes). Rendezvous/transport and consume-once state stay the consumer's
+  concern, as with `invite`. The SAS derivation (SHA-256 over a domain-separated
+  transcript → 6-digit code) is deterministic and language-portable for the Dart
+  port.
 
 ### Fixed
 - The filesystem, OS-keychain, WebExtension, and IndexedDB backends rejected a
