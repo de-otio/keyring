@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-06-20
+
+The server-blind keystore line: a high-entropy recovery-key tier, a server-backed
+storage backend, and SAS-authenticated device-link — the keyring foundation for a
+cross-device, server-blind settings/messaging keystore (with a Dart client port
+verified byte-for-byte against these primitives' KATs). Additive; no change to the
+existing wrapped-key wire format.
+
 ### Added
 - **`recovery-key` tier** (`RecoveryKeyTier`, `RECOVERY_KEY_BYTES`) — wraps a
   master under a generated, high-entropy 32-byte recovery key used directly as
