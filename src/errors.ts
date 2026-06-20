@@ -45,6 +45,13 @@ export class WrongPassphrase extends UnlockFailed {
   override readonly code = 'WRONG_PASSPHRASE';
 }
 
+/** Recovery key did not decrypt the wrapped master. Separate subclass so
+ *  consumers can distinguish a wrong/typo'd recovery key from a corrupted or
+ *  tampered wrapped key (label is the same to the user: it didn't unlock). */
+export class WrongRecoveryKey extends UnlockFailed {
+  override readonly code = 'WRONG_RECOVERY_KEY';
+}
+
 /** ssh-agent refused to sign (agent locked, key not loaded, agent not
  *  running). */
 export class SshAgentRefused extends UnlockFailed {

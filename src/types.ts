@@ -9,10 +9,16 @@ import type { AnyEnvelope, ISecureBuffer, MasterKey } from '@de-otio/crypto-enve
  *   RSA-OAEP KEM+DEM). Inherits strength of the user's SSH key passphrase.
  * - `'maximum'`: Argon2id-passphrase-derived master. Library-enforced KDF
  *   parameter floors. No recovery.
+ * - `'recovery-key'`: master wrapped under a **generated high-entropy
+ *   recovery key** (32 bytes). No password KDF — the recovery key is the KEK
+ *   directly (crypto-envelope's `EnvelopeClient` applies HKDF-SHA256 internally
+ *   with domain-separated `content`/`commit` info strings). Intended for
+ *   server-held wrapped masters where a low-entropy passphrase would be
+ *   offline-grindable; the high-entropy key makes that attack infeasible.
  *
  * `'enhanced'` (BIP39 mnemonic) from chaoskb is dropped.
  */
-export type TierKind = 'standard' | 'maximum';
+export type TierKind = 'standard' | 'maximum' | 'recovery-key';
 
 /** How a master is wrapped for storage. Generic in its `TierKind` so that
  *  capability-typed `KeyStorage<K>` can refuse mismatched tiers at compile
@@ -96,7 +102,8 @@ export type KdfParamsSnapshot =
 export type UnlockInput =
   | { kind: 'passphrase'; passphrase: string }
   | { kind: 'ssh-agent' }
-  | { kind: 'ssh-key'; privateKeyPem: string; passphrase?: string };
+  | { kind: 'ssh-key'; privateKeyPem: string; passphrase?: string }
+  | { kind: 'recovery-key'; recoveryKey: Uint8Array };
 
 // ── Rotation ──────────────────────────────────────────────────────────────
 

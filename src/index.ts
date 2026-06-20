@@ -44,11 +44,13 @@ export {
   UnlockFailed,
   UnsupportedSshKeyType,
   WrongPassphrase,
+  WrongRecoveryKey,
 } from './errors.js';
 
 // Phase B runtime
 export { KeyRing, type KeyRingOptions } from './keyring.js';
 export { MaximumTier, type Argon2idParams } from './tiers/maximum.js';
+export { RecoveryKeyTier, RECOVERY_KEY_BYTES } from './tiers/recovery-key.js';
 export { InMemoryStorage } from './storage/in-memory.js';
 export { FileSystemStorage } from './storage/file-system.js';
 

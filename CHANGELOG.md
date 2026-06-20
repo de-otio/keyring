@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **`recovery-key` tier** (`RecoveryKeyTier`, `RECOVERY_KEY_BYTES`) — wraps a
+  master under a generated, high-entropy 32-byte recovery key used directly as
+  the KEK (no password KDF, no salt; `EnvelopeClient` applies HKDF-SHA256
+  internally). Intended for server-held wrapped masters where a low-entropy
+  passphrase would be offline-grindable. New `TierKind` `'recovery-key'`, new
+  `UnlockInput` variant `{ kind: 'recovery-key'; recoveryKey }`, and a
+  `WrongRecoveryKey` error. The wrapped form carries no `kdfParams`, so the wire
+  format is trivially language-portable; a frozen known-answer vector pins the
+  v2-CBOR envelope for the forthcoming Dart port. Additive — no change to
+  existing tiers or the wrapped-key wire format.
+
 ## [0.2.2] — 2026-04-25
 
 Re-roll of the unreleased `0.2.1` tag, which failed to publish: `vitest@4.1.5` declares `vite` as a non-optional peer dep, so without an explicit consumer-side declaration npm 11 nests vite under `vitest/node_modules/vite`, where the hoisted `@vitest/mocker` can't resolve it — `prepublishOnly`'s `test:coverage` blew up with `ERR_MODULE_NOT_FOUND` before publish ever ran. Fixed by pinning `vite` in `devDependencies`. No runtime / wire-format / public-API changes.
